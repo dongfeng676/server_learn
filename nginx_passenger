@@ -1,0 +1,126 @@
+ubuntu14.04 环境
+1. passenger 安装
+gem install passenger
+2. nginx 安装
+passenger-install-nginx-module
+如果遇到permission问题，可以尝试
+运行结果如下（安装过程中一些比较关键信息）：
+
+Automatically download and install Nginx?
+Nginx doesn't support loadable modules such as some other web servers do,
+so in order to install Nginx with Passenger support, it must be recompiled.
+
+Do you want this installer to download, compile and install Nginx for you?
+
+ 1. Yes: download, compile and install Nginx for me. (recommended)
+    The easiest way to get started. A stock Nginx 1.8.0 with Passenger
+    support, but with no other additional third party modules, will be
+    installed for you to a directory of your choice.
+
+ 2. No: I want to customize my Nginx installation. (for advanced users)
+    Choose this if you want to compile Nginx with more third party modules
+    besides Passenger, or if you need to pass additional options to Nginx's
+    'configure' script. This installer will  1) ask you for the location of
+    the Nginx source code,  2) run the 'configure' script according to your
+    instructions, and  3) run 'make install'.
+
+Whichever you choose, if you already have an existing Nginx configuration file,
+then it will be preserved.
+
+Enter your choice (1 or 2) or press Ctrl-C to abort: 1
+
+
+
+
+
+Where do you want to install Nginx to?
+
+Please specify a prefix directory [/opt/nginx]: 
+
+
+--------------------------------------------
+
+Nginx with Passenger support was successfully installed.
+
+The Nginx configuration file (/opt/nginx/conf/nginx.conf)
+
+must contain the correct configuration options in order for Phusion Passenger
+to function correctly.
+
+This installer has already modified the configuration file for you! The
+following configuration snippet was inserted:
+
+  http {
+      ...
+      passenger_root /home/zhang/.rvm/gems/ruby-2.1.7/gems/passenger-5.0.18;
+      passenger_ruby /home/zhang/.rvm/gems/ruby-2.1.7/wrappers/ruby;
+      ...
+  }
+
+After you start Nginx, you are ready to deploy any number of Ruby on Rails
+applications on Nginx.
+
+选择1，自动安装
+选择2，定制安装
+安装目录/opt/nginx
+nginx配置文件/opt/nginx/conf/nginx.conf
+
+
+做一个简单的demo
+
+在nginx的配置文件(/opt/nginx/conf/nginx.conf)中添加一下模块
+server {
+  listen 80;
+  server_name moon;
+
+  root /home/zhang/project/yueqin/moon.ui.web/moon/public;
+  passenger_enabled on;
+  rails_env development;
+  access_log  /var/log/nginx/moon_access.log;
+  error_log   /var/log/nginx/moon_error.log;
+}
+修改hosts文件，给你的项目一个本地域名, 比如moon
+
+sudo vim /etc/hosts
+127.0.0.2 moon
+测试hosts
+
+ping moon
+PING awesome_project.local (127.0.0.2): 56 data bytes
+64 bytes from 127.0.0.2: icmp_seq=0 ttl=64 time=0.054 ms
+
+重启
+  sudo kill $(cat /opt/nginx/logs/nginx.pid)
+  sudo /opt/nginx/sbin/nginx
+或者
+  sudo /opt/nginx/sbin/nginx -s reload
+
+做一个软链接
+sudo ln -s /opt/nginx/sbin/nginx /usr/sbin/
+这样就可以更简单的操作nginx启动
+之后就可以这样操作nginx了,如下
+
+测试Nginx的配置文件语法是否正确
+
+$ sudo nginx -t
+nginx: the configuration file /usr/local/nginx/conf/nginx.conf syntax is ok
+nginx: configuration file /usr/local/nginx/conf/nginx.conf test is successful
+启动Nginx
+
+$ sudo nginx
+如何在修改Nginx的配置文件后，让Nginx载入新配置
+
+$ sudo nginx -s reload
+如何停止Nginx
+
+$ sudo nginx -s stop
+如何在不停Nginx的情况下，重新启动Passenger
+
+$ cd path/to/your/awesome/project
+$ touch tmp/restart.txt
+
+参考文档:
+https://ruby-china.org/wiki/mac-nginx-passenger-rails
+https://www.phusionpassenger.com/library/deploy/nginx/deploy/ruby/
+https://www.phusionpassenger.com/library/deploy/nginx/deploy/ruby/
+

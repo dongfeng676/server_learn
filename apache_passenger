@@ -1,0 +1,90 @@
+1. 	sudo apt-get install apache2
+	gem install passenger
+	passenger-install-apache2-module
+	安装这个打过程中可能需要安装
+	apt-get install libcurl4-openssl-dev or libcurl4-gnutls-dev
+	apt-get install apache2-threaded-dev
+	apt-get install libapr1-dev
+	apt-get install libaprutil1-dev
+
+	安装之后再次运行
+	passenger-install-apache2-module
+	之后需要在apache2的配置文件apache2.conf（144行后）加入以下代码
+
+
+	LoadModule passenger_module /home/zhang/.rvm/gems/ruby-2.0.0-p643/gems/passenger-5.0.10/buildout/apache2/mod_passenger.so
+	<IfModule mod_passenger.c>
+	PassengerRoot /home/zhang/.rvm/gems/ruby-2.0.0-p643/gems/passenger-5.0.10
+	PassengerDefaultRuby /home/zhang/.rvm/gems/ruby-2.0.0-p643/wrappers/ruby
+	</IfModule>
+
+
+2.接着就是虚拟主机的配置之后注意重启apache
+  apache 安装后会有个/var/www/html
+ls -l
+lrwxrwxrwx 1 root root    47 10月 26 22:29 demo -> /home/zhang/project/my/rails_learn/demo/public/
+lrwxrwxrwx 1 root root    48  9月  5 11:29 forest -> /home/zhang/project/yueqin/forest/forest/public/
+-rw-r--r-- 1 root root 11510  9月  5 00:07 index.html
+lrwxrwxrwx 1 root root    51  9月  5 00:29 moon -> /home/zhang/project/yueqin/moon.ui.web/moon/public/
+把自己的项目软连到这个目录下然后进行一下配置
+	<VirtualHost *:80>
+
+		DocumentRoot "/var/www/html"
+		<Directory /var/www/html>
+			Options Indexes FollowSymLinks MultiViews
+			AllowOverride All
+			Order allow,deny
+			allow from all
+		</Directory>
+
+		RailsEnv development
+		RailsBaseURI /forest
+		<Directory /var/www/html/forest>
+			Options -MultiViews
+		</Directory>
+
+		ErrorLog ${APACHE_LOG_DIR}/error.log
+		CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+	</VirtualHost>
+
+部署到服务器上面的时候注意环境RailsEnv改变一下就可以了。
+3.启动apache2时候遇到
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+为了解决这个问题需要编辑httpd.conf文件
+sudo vi /etc/apache2/httpd.conf (可能不存在)
+ServerName localhost
+sudo apache2ctl restart
+
+配置之后可能还不起作用，那是因为下边原因
+所以在apache2.conf 中添加如下行即可
+Include /etc/apache2/httpd.conf
+
+
+
+关于Apache2的配置文件：
+
+Ubuntu的Apache的配置文件是/etc/apache2/apache2.conf，Apache在启动时会自动读取这个文件的配置信息。而其他的一些配置文件，如httpd.conf等，则是通过Include指令包含进来。在apache2.conf中可以找到这些Include行：
+
+# Include module configuration:
+
+Include /etc/apache2/mods-enabled/*.load
+Include /etc/apache2/mods-enabled/*.conf
+
+# Include all the user configurations:
+Include /etc/apache2/httpd.conf
+
+# Include ports listing
+Include /etc/apache2/ports.conf
+……
+# Include generic snippets of statements
+Include /etc/apache2/conf.d/
+
+# Include the virtual host configurations:
+Include /etc/apache2/sites-enabled/
+
+
+
+
+
+
