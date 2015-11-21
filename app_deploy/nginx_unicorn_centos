@@ -1,0 +1,85 @@
+1.nginx 安装
+sudo yum install nginx
+如果不行，要先处理下源
+sudo rpm -ivh http://nginx.org/packages/centos/6/noarch/RPMS/nginx-release-centos-6-0.el6.ngx.noarch.rpm
+查看nginx 信息
+yum info nginx
+sudo yum install nginx
+如果出现下面错误
+--> Processing Dependency: libpcre.so.0()(64bit) for package: varnish-libs-3.0.5-1.el6.x86_64
+--> Finished Dependency Resolution
+Error: Package: varnish-libs-3.0.5-1.el6.x86_64 (varnish-3.0)
+           Requires: libpcre.so.0()(64bit)
+Error: Package: varnish-3.0.5-1.el6.x86_64 (varnish-3.0)
+           Requires: libpcre.so.0()(64bit)
+ You could try using --skip-broken to work around the problem
+ You could try running: rpm -Va --nofiles --nodigest
+运行：
+yum clean all; 
+yum update
+sudo yum install nginx
+
+
+service nginx start
+
+注意如果机器上有apache/httpd会出现端口冲突的问题
+停掉即可
+输入
+http://ip
+就可以看到nginx欢迎界面
+
+
+2.unicorn 配置
+ vi config/unicorn.rb
+
+worker_processes 2
+
+working_directory "/home/zhang/project/yueqin/moon.ui.web/moon"
+
+listen "/tmp/unicorn.moon.sock"
+
+timeout 30
+
+pid "/home/zhang/project/yueqin/moon.ui.web/moon/tmp/unicorn.pid"
+
+stderr_path "/home/zhang/project/yueqin/moon.ui.web/moon/log/unicorn.stderr.log"
+stdout_path "/home/zhang/project/yueqin/moon.ui.web/moon/log/unicorn.stdout.log"
+
+将一下内容复制到unicorn.rb文件中，改变相关的路径
+
+3.编写nginx配置文件
+
+upstream app {
+    # Path to Unicorn SOCK file, as defined previously
+    server unix:/tmp/unicorn.myapp.sock fail_timeout=0;
+}
+
+server {
+    listen 80;
+    server_name localhost;
+
+    # Application root, as defined previously
+    root /root/my_app/public;
+
+    try_files $uri/index.html $uri @app;
+
+    location @app {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+        proxy_pass http://app;
+    }
+
+    error_page 500 502 503 504 /500.html;
+    client_max_body_size 4G;
+    keepalive_timeout 10;
+}  
+
+改变其中需要修改的
+
+４．　unicorn_rails -c config/unicorn.rb -D
+　　　　　　启动unicorn
+    service nginx restart
+    重启nginx
+
+5.测试成功与否

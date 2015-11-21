@@ -1,0 +1,19 @@
+ubuntu14.04环境
+
+nginx 已经安装成功，安装方法可以使用
+sudo apt-get install nginx
+也可以下载nginx的源码包，自己进行编译和安装
+此处略过
+
+unicorn安装
+　
+gem "unicorn"
+
+
+
+
+
+
+
+
+

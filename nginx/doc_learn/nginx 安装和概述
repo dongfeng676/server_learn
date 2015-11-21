@@ -1,0 +1,71 @@
+参考文档：
+中文：http://www.nginx.cn/doc/
+英文：http://nginx.org/
+1.优点
+    Nginx 是一个高性能的 Web 和反向代理服务器, 它具有有很多非常优越的特性:
+
+    作为 Web 服务器：相比 Apache，Nginx 使用更少的资源，支持更多的并发连接，体现更高的效率，这点使 Nginx 尤其受到虚拟主机提供商的欢迎。能够支持高达 50,000 个并发连接数的响应，感谢 Nginx 为我们选择了 epoll and kqueue 作为开发模型.
+
+    作为负载均衡服务器：Nginx 既可以在内部直接支持 Rails 和 PHP，也可以支持作为 HTTP代理服务器 对外进行服务。Nginx 用 C 编写, 不论是系统资源开销还是 CPU 使用效率都比 Perlbal 要好的多。
+
+    作为邮件代理服务器: Nginx 同时也是一个非常优秀的邮件代理服务器（最早开发这个产品的目的之一也是作为邮件代理服务器），Last.fm 描述了成功并且美妙的使用经验。
+
+    Nginx 安装非常的简单，配置文件 非常简洁（还能够支持perl语法），Bugs非常少的服务器: Nginx 启动特别容易，并且几乎可以做到7*24不间断运行，即使运行数个月也不需要重新启动。你还能够在 不间断服务的情况下进行软件版本的升级。
+２．安装
+　　　　sudo apt-get install nginx/yum install nginx
+    或者下载源码包自己安装
+    参考文档：
+    中文：http://www.nginx.cn/install
+    英文：http://nginx.org/en/linux_packages.html
+    此处建议看英文的．
+3. nginx进程讲解
+　　　　nginx has one master process and several worker processes. The main purpose of the master process is to   read and evaluate configuration, and maintain worker processes. Worker processes do actual processing of requests. nginx employs event-based model and OS-dependent mechanisms to efficiently distribute requests among worker processes. The number of worker processes is defined in the configuration file and may be fixed for a given configuration or automatically adjusted to the number of available CPU cores (see worker_processes).
+3.1 nginx 信号控制
+　　　　To start nginx, run the executable file. Once nginx is started, it can be controlled by invoking 
+　　　　the executable with the -s parameter. Use the following syntax:
+
+    nginx -s signal
+        Where signal may be one of the following:
+
+    stop — fast shutdown
+    quit — graceful shutdown
+    reload — reloading the configuration file
+    reopen — reopening the log files
+
+    nginx -s reload
+    Once the master process receives the signal to reload configuration, it checks the syntax validity of the new configuration file and tries to apply the configuration provided in it. If this is a success, the master process starts new worker processes and sends messages to old worker processes, requesting them to shut down. Otherwise, the master process rolls back the changes and continues to work with the old configuration. Old worker processes, receiving a command to shut down, stop accepting new connections and continue to service current requests until all such requests are serviced. After that, the old worker processes exit.
+
+    关键点：
+    　　　语法正确，master发出信号,work停止接收新的请求，处理老的请求直到结束．
+    　　　语法错误，master回滚，继续使用老的配置文件．
+    If this succeeds, it starts new worker processes, and sends messages to old worker processes requesting them to shut down gracefully. Old worker processes close listen sockets and continue to service old clients. After all clients are serviced, old worker processes are shut down.
+
+    The master process first checks the syntax validity, then tries to apply new configuration, that is, to open log files and new listen sockets　
+    重新加载配置文件的过程也就是log文件打开和新的监听套接字的建立　　　
+    master进程pid位于一个pid文件中(例如usr/local/nginx/logs/nginx.pid)
+    可以kill这个进程优雅关闭nginx，也可以使用ps aux |grep nginx进行查看
+4. Configuration File’s Structure
+
+   nginx consists of modules which are controlled by directives specified in the configuration file. Directives are divided into simple directives and block directives. A simple directive consists of the name and parameters separated by spaces and ends with a semicolon (;). A block directive has the same structure as a simple directive, but instead of the semicolon it ends with a set of additional instructions surrounded by braces ({ and }). If a block directive can have other directives inside braces, it is called a context (examples: events, http, server, and location).
+
+   Directives placed in the configuration file outside of any contexts are considered to be in the main context. The events and http directives reside in the main context, server in http, and location in server.
+
+   关键点：simple directives and block directives
+   　　　　　　　context　　and  main context
+5. Serving Static Content
+　　　include /opt/nginx/conf/conf.d/*.conf;
+　　　在/opt/nginx/conf下边建立文件夹conf.d，以后所有的配置文件的例子都会放在这个文件里边
+　　　在nginx配置文件/opt/nginx/conf/nginx.conf里边加入上述内容将其包含进来．
+   请查看../example/conf_file/serving_static.conf 配置及其说明
+   对于访问出错可以查看error.log日志，最需要注意的就是权限问题，权限问题，权限问题
+
+6.Setting Up a Simple Proxy Server
+   One of the frequent uses of nginx is setting it up as a proxy server, which means a server that receives requests, passes them to the proxied servers, retrieves responses from them, and sends them to the clients.
+   例子看　../example/conf_file/
+   这个例子的资源文件不是在本目录之内，要自己去建立
+
+   对于以上两个例子会有个加载先后顺序的问题
+   对于第一个配置要处理的请求　http://localhost/images/1.jpg
+   因为先加载的是proxy_server.conf,所以就会去/data/images里边去找相应的资源
+   而不是去/home/zhang/project/my/server_learn/nginx/example/data/images目录去找资源
+   这一点要尤其注意，这个情况可以看error.log文件，日志会很清晰明了的告诉你去那个目录找资源了．

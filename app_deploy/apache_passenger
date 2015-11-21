@@ -1,3 +1,9 @@
+apache 403　错误基本上都是权限错误
+正确的权限应该是755
+最为重要的一点是不仅项目本身的权限要看，
+而且要看项目上层的每一层的权限
+比如新建用户，一定要把用户权限改成755
+
 1. 	sudo apt-get install apache2
 	gem install passenger
 	passenger-install-apache2-module
