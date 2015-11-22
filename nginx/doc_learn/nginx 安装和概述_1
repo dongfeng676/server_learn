@@ -1,6 +1,8 @@
 参考文档：
 中文：http://www.nginx.cn/doc/
 英文：http://nginx.org/
+
+本文原始文档链接：http://nginx.org/en/docs/beginners_guide.html
 1.优点
     Nginx 是一个高性能的 Web 和反向代理服务器, 它具有有很多非常优越的特性:
 
