@@ -1,0 +1,49 @@
+ 原文链接：
+  http://vladigleba.com/blog/2014/03/21/deploying-rails-apps-part-3-configuring-unicorn/
+
+
+Installing and Configuring Unicorn
+
+With that out of the way, we’re now ready to start working with Unicorn. We’ll begin by adding the following line to our app’s Gemfile on our local computer:
+
+Gemfile
+gem 'unicorn', '~> 4.8.0’
+Make sure you change the version number to whatever’s the most recent one at the time of your install. The ~> notation means that any future minor updates (e.g., from 4.0.0 to 4.0.1) will be installed, but major ones (e.g., from 4.0 to 4.1) won’t be. Major updates can sometimes introduce unexpected behavior in your app, so it’s best to limit the updates to minor releases only.
+
+We’ll then install Unicorn by running bundle in the root path of our app, and Bundler, which we installed in part 2, will take care of the install for us.
+
+Having Unicorn installed, we can begin configuring it. We’ll start by creating a file called unicorn.rb on our local computer inside the /config directory of our Rails application. This is how my file for Phindee looks:
+
+unicorn.rb
+root = "/var/www/phindee/current"
+working_directory root
+pid "#{root}/tmp/pids/unicorn.pid"
+stderr_path "#{root}/log/unicorn.log"
+stdout_path "#{root}/log/unicorn.log"
+
+listen "/tmp/unicorn.phindee.sock"
+worker_processes 2
+timeout 30
+The first variable root represents the path to the root directory of our app, which I’ve set to /var/www/phindee/current. Generally, web apps are stored inside /var/www on Unix since the /var directory is designated for files that increase in size over time, which is the case with most web apps, and a /www directory is typically created inside /var to store files meant for the web. I then have a /phindee directory specified inside /www to store all things related to Phindee, as well as a current directory, which Capistrano will later create and use to store the latest deployment code. You don’t have to actually create these directories now, as Capistrano we’ll create them itself when it runs.
+
+Below is what the rest of the configurations mean:
+
+working_directory specifies exactly what is says—the app’s working directory— and it’s set to the variable root, which we just defined.
+
+pid specifies the path to a .pid file that will store the process ID of Unicorn’s master process, which can be later used to stop the process itself. These files are typically stored inside the /tmp directory since they exist only while Unicorn is running, so you can leave this line the way it is.
+
+stderr_path and stdout_path specify the path to stderr and stdout. If you’re not familiar with what they mean, when a Unix program starts up, it has three streams opened for it: one for input called “standard input” (abbreviated stdin), one for output called “standard output” (abbreviated stdout), and one for printing error messages called “standard error” (abbreviated stderr). Given our configuration, this means that any error messages written by our Rails app to the stderr stream will get written to the .log file specified in the stderr_path. It’s common to point stdout_path to the same location as stderr_path and store them both inside the /log directory.
+
+listen specifies the path to a socket that will listen for a client wanting to make a connection request. If you’re unfamiliar with this, a socket is basically a software object consisting of a port number that’s attached to an IP address. It allows clients and servers to communicate with one another by writing to and reading from their sockets. Since they’re running only when Unicorn is running, they’re usually stored inside the /tmp directory as well.
+
+worker_processes specifies the number of workers that the master process will fork for client request handling. The more workers you set, the more memory you’ll need, and since I don’t have a large amount of memory on my VPS, I decided to set mine to two. This should be enough for a low-traffic app, but once your traffic rises, the number of workers, as well as the amount of memory available to your server, will need to rise with it.
+
+timeout specifies the maximum number of seconds a worker can take to respond to a request before the master kills it and forks a new one. 30 seconds is a good value to put here since whenever a worker takes longer than this to respond, it’s usually safe to assume there is something wrong with the worker itself.
+You can get a complete list of all the other possible configuration options by taking a look Unicorn’s Configurator Module.
+
+
+listen 是一个socket连接，监听了来自客户的请求。socket是由一个端口和一个ip地址组成。
+允许客户端和服务器端进行读写交流。
+
+unicornu管理脚本请看unicorn_manage_shell
+注意要修改其中的变量，路径，并且要把文件修改成可执行文件。

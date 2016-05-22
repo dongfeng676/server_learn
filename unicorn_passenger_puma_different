@@ -1,0 +1,46 @@
+  原文链接：
+  http://vladigleba.com/blog/2014/03/21/deploying-rails-apps-part-3-configuring-unicorn/
+
+Unicorn is an HTTP server for Ruby. It’s designed to be used in a production environment, unlike WEBrick, which is designed for running your app on your local computer. Because it’s fast, efficient, and offers tons of cool features, like load balancing and rolling restarts, Unicorn has become a popular production server for Rails apps.
+
+unicorn 提供了cool features，例如load balancing and rolling restarts,
+
+Comparing Unicorn with Passenger
+
+When I deployed Phindee for the first time, however, I actually used the open source version of Phusion Passenger, due to the fact that it was (and is) easier to setup than Unicorn. My main concern, at the time, was to have a functioning app deployed as soon as possible, with as little effort as possible, and Passenger helped me do just that.
+
+Eventually, I reached a point where I was ready for something that I could configure myself, and Unicorn seemed like a good next step. But if you’re a beginner, Passenger will be the easiest to start with since it’s designed to integrate into Nginx directly and, therefore, requires less work to setup and maintain. You will have to pay for the Enterprise version, however, if you want advanced features like error-resistant, zero-downtime deploys, which come for free with Unicorn.
+
+passenger 是一个更简单，需要花费更少时间配置和维护的服务器，因为他实际上集成到了nginx里边。
+企业版本有更加炫酷的功能如error-resistant, zero-downtime deploys，但是unicorn的这些功能是免费的。
+
+unicorn 特点阐述
+DO ONE THING, DO IT WELL
+The reason why I like Unicorn is due to its philosophy of doing a few things well. An example of this is load balancing, which Unicorn hands off to the operating system entirely. When Unicorn starts, its master process spawns (forks) a configured number of processes called workers. These workers then handle the incoming requests to your app and only accept a request when they’re ready.
+
+But it’s the operating system that handles the forking, as well as the distribution of requests between processes that are ready to accept, not Unicorn. What Unicorn does is the actual monitoring of workers themselves through the master process. If a worker, for example, takes too much time to complete a task, the master process will kill it and spawn a new one.
+
+操作系统负责产生新的进程，并且负责分发请求介于已经准备好的work进程直接。
+而master进程负责监控work进程
+
+error-resistant,zero-downtime特性的讲解
+
+DEPLOYS DONE RIGHT
+What this design can achieve is error-resistant, zero-downtime deploys. Error-resistant deploys ensure that if something goes wrong during a deploy, your app will remain online and serve incoming requests using the old code. This is possible because Unicorn doesn’t kill off old workers until new workers have successfully forked, which means your old workers will stay alive if something goes wrong with the new ones.
+
+Zero-downtime deploys work in a similar manner. We can send a signal to the master process telling it to start a new master, and this new master will then begin reloading our new code. Once it’s fully loaded, the new master will fork its workers. The first worker forked will notice there is still an old master running, and it’ll send a signal telling it to start gracefully shutting down its workers. When all workers finish serving their current requests, the old master then dies, and our app is fully reloaded with new code.
+
+Passenger supports rolling restarts like this as well, but they only come with the paid Passenger Enterprise version. One advantage the Enterprise version provides, however, is it restarts the processes one-by-one, which requires less memory. Rolling restarts with Unicorn, on the other hand, are done all at once and temporarily require twice the memory usage. It is possible, of course, to script one-by-one rolling restarts in Unicorn, but Passenger does this automatically for you.
+
+How about Puma?
+Another alternative to Unicorn and Passenger is Puma. Whereas Unicorn and Passenger achieve concurrency through the use of forks, Puma achieves it by running multiple threads in a single process. Of course, this means that your code must be thread-safe, but since Rails 4 is thread-safe by default, this shouldn’t be an issue.
+
+Because threading requires less memory than forking, Puma will be more memory efficient than a similar Unicorn setup. Puma, however, does not do rolling restarts, nor does watch for and restart failed processes, like Unicorn, which means you’ll need a service like Monit that monitors and restarts them for you. As with any technology, pick whatever best meets your needs.
+
+综上所述：
+passenger,unicorn是多进程的服务器，都提供了很炫酷的功能，相对而言unicorn的炫酷功能是免费的，passenger可能更加简单对于部署而言。unicorn 比passenger更加节省内存。
+puma是一个多进程的服务器，使用比以上两者更加少的内存，但是相对而言缺乏一些炫酷功能。
+最后：
+As with any technology, pick whatever best meets your needs.
+
+

@@ -1,0 +1,8 @@
+原文链接：
+http://vladigleba.com/blog/2014/03/21/deploying-rails-apps-part-3-configuring-unicorn/f
+Next, we’ll install a web server called Nginx, which will handle all our static requests, such as stylesheets, scripts, images, and fonts. Its low memory usage and ability to serve static content quickly and efficiently make it a popular alternative to Apache and an excellent choice for sites running on a Virtual Private Server (VPS). What makes Nginx efficient is the fact that it’s an event-based server, while Apache, on the other hand, is process-based. An event-based server doesn’t spawn new processes or threads for each request the way a process-based one does, and this means lower memory usage and faster responses.
+
+nginx 是一个基于事件服务器(event-based server),每次请求不会产生新的进程或者线程
+apache 是一个基于过程服务器(process-based server),每次请求会产生新的进程或者线程
+
+相对来说nginx更加节省内存并且响应更快
