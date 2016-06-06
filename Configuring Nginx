@@ -1,0 +1,60 @@
+原文链接： http://vladigleba.com/blog/2014/03/27/deploying-rails-apps-part-4-configuring-nginx/
+upstream unicorn {
+  server unix:/tmp/unicorn.phindee.sock fail_timeout=0;
+}
+
+server {
+  server_name www.phindee.com;
+  return 301 $scheme://phindee.com$request_uri;
+}
+#301 请求的网页已永久移动到新位置。服务器返回此响应(对 GET 或 HEAD 请求的响应)时，会自动将请求者转到新位置。
+#后边代指转向的新的的位置 
+#$scheme 代表http,https
+#$require_uri 代表不包含域名的请求的路径，也就是在nginx的日志中看到的（例如： “/foo/bar.php?arg=baz”）
+server {
+  listen 80 default deferred;
+  server_name phindee.com;
+  root /var/www/phindee/current/public;
+
+#default表示如果请求匹配不到正确的server就使用这个server
+#deferred 开启了TCP_DEFER_ACCEPT模块，可以提高nginx处理请求的性能
+#详细可以看http://blog.csdn.net/bajiudongfeng/article/details/51598511
+
+ location ^~ /assets/ {
+    gzip_static on;
+    expires max;
+    add_header Cache-Control public;
+  }
+#gzip_static是nginx对静态资源的压缩处理，把静态资源压缩成*.gz,减少网络传送时间，这个需要浏览器支持gzip压缩。请求到的资源是*.gz的但是浏览器会进行解压缩。
+#expires max设置有效期,默认December 31st, 2037
+#expires是一种过时的指定缓存的方法，
+#一般建议使用后边的add_header,保持向后兼容，Cache-Control public使每个人都可见
+
+  try_files $uri/index.html $uri @unicorn;
+
+#try_files 是设置了请求的匹配，这个是针对于非静态资源的请求的
+#例如在浏览器里边打入了phindee.com/foobar
+#$uri 代表/foobar
+对于本例子，将首先匹配
+var/www/phindee/current/public/foobar/index.html file
+如果没有发现这个文件将会匹配/foobar这个目录本身
+如果还没有发现的话就会把请求转向到unicorn
+
+
+  location @unicorn {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $http_host;
+    proxy_redirect off;
+    proxy_pass http://unicorn;
+  }
+
+#    We set it to http://unicorn so that it points to the upstream block called unicorn, which we already defined, and the request is then handled by the Unicorn socket defined there.
+#    The two proxy_set_header directives then append additional headers needed for Unicorn, while proxy_redirect set to off prevents Nginx from doing any redirect handling
+
+  error_page 500 502 503 504 /500.html;
+  keepalive_timeout 10;
+}
+
+#500.html是一个错误展示any 500-related errors界面
+#while keepalive_timeout tells Nginx to retain keep-alive connections (also known as persistent connections) for up to 10 seconds and close them if they exceed that time
+  保持链接长达10s如果超出就关闭。
